@@ -46,7 +46,7 @@ func (n *node) AddParent(parent Node) {
 func (n *node) Format(f fmt.State, verb rune) {
 	switch verb {
 	case 'v':
-		fmt.Fprintf(f, "{primary: %d parentID: %d name:%v children:[", n.primary, n.parentID, n.data)
+		fmt.Fprintf(f, "{primary: %d parentID: %d data:%+v children:[", n.primary, n.parentID, n.data)
 		for i, n := range n.children {
 			if i != 0 {
 				fmt.Fprint(f, " ")
