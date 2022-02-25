@@ -1,8 +1,10 @@
 package tree
 
-// An interator implementing a breadth-first search
+// BFSArray is an array of Nodes ordered as a breadth first search
 type BFSArray []Node
 
+// BFS creates an array of all nodes in the tree in order of a breadth first
+// search.
 func (t *Tree) BFS() BFSArray {
 	iter := BFSArray{}
 	q := []Node{t.root}

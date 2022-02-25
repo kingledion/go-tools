@@ -17,7 +17,6 @@ are traversed in an order determined by the order in which they are added
 to the tree.
 
 This package includes a breadth first search algorithm.
- -
 */
 package tree
 
@@ -83,7 +82,7 @@ func (t *Tree) Add(nodeID uint64, parentID uint64, data interface{}) (added bool
 				return
 			}
 		} else {
-			child.AddParent(parent)
+			child.addParent(parent)
 			parent.Add(child)
 		}
 	}
@@ -96,7 +95,7 @@ func (t *Tree) Add(nodeID uint64, parentID uint64, data interface{}) (added bool
 }
 
 func (t *Tree) reroot(newHead Node) {
-	t.root.AddParent(newHead)
+	t.root.addParent(newHead)
 	newHead.Add(t.root)
 	t.root = newHead
 }
