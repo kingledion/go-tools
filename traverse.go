@@ -5,7 +5,7 @@ type BFSArray []Node
 
 func (t *Tree) BFS() BFSArray {
 	iter := BFSArray{}
-	q := []Node{t.head}
+	q := []Node{t.root}
 	return bfs(q, iter)
 
 }
