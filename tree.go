@@ -57,7 +57,9 @@ func (t *Tree) Root() Node {
 //
 // If the element to be added has a primary key that matches the parent key
 // of the root node, the tree will be re-rooted by adding this element as the
-// new root.
+// new root. If there is a cyclical reference when attempting to re-root, i.e. the
+// parent of the existing root is the new node and the parent of the new node is
+// the exiting rool, the element will fail to add.
 func (t *Tree) Add(nodeID uint64, parentID uint64, data interface{}) (added bool, exists bool) {
 	child := &node{primary: nodeID, parentID: parentID, data: data}
 
@@ -71,17 +73,18 @@ func (t *Tree) Add(nodeID uint64, parentID uint64, data interface{}) (added bool
 		t.root = child
 	} else {
 
-		// return false if the parent does not exist and this element is
-		// not a missing parent
 		parent := t.primary.find(parentID)
 		if parent == nil {
-
-			if t.root.IsParent(nodeID) {
+			if t.root.IsParent(nodeID) { // parent does not exist but incoming node is parent of root
 				t.reroot(child)
-			} else {
+			} else { // parent does not exist, do not add
 				return
 			}
 		} else {
+			if t.root.IsParent(nodeID) { // parent exists, but incoming node causes cycle
+				return
+			}
+			// parent exists, add
 			child.addParent(parent)
 			parent.Add(child)
 		}
