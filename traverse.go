@@ -1,24 +1,40 @@
 package tree
 
-// BFSArray is an array of Nodes ordered as a breadth first search
-type BFSArray []Node
+import (
+	"github.com/phf/go-queue/queue"
+)
 
-// BFS creates an array of all nodes in the tree in order of a breadth first
-// search.
-func (t *Tree) BFS() BFSArray {
-	iter := BFSArray{}
-	q := []Node{t.root}
-	return bfs(q, iter)
+// BFS implements a breadth first search through a tree.
+func (t *Tree) BFS() <-chan Node {
+	search := make(chan Node)
+	q := queue.New()
+	q.PushBack(t.root)
+	go func() {
+		for {
+			if bfs(q, search) {
+				break
+			}
+		}
+	}()
 
+	return search
 }
 
-func bfs(q []Node, iter BFSArray) BFSArray {
+func bfs(q *queue.Queue, search chan<- Node) bool {
 
-	if len(q) == 0 {
-		return iter
+	current := q.PopFront()
+	switch c := current.(type) {
+	case Node:
+		for _, c := range c.GetChildren() {
+			q.PushBack(c)
+		}
+		search <- c
+		return false
+	case nil:
+		return true
+	default:
+		// Should be unreachable...
+		return true
 	}
-	current := q[0]
-	iter = append(iter, current)
-	q = append(q[1:], current.GetChildren()...)
-	return bfs(q, iter)
+
 }
