@@ -10,6 +10,10 @@ A tree is here defined as a graph having three properties:
 The nodes of the tree are assumed to have a primary identifier or key by
 which parent and child relationships can be defined.
 
+## Objectives
+
+The goal fo this tree is to implement a generic tree with minimal memory usage and maximal performance for general use cases. This package does not philosophically attempt to avoid panic-ing, as that safety comes at the price of sacrificed performance. Therefore, it would be expected that an implementer will perform nil checks as appropriate. 
+
 ## Development
 
 Documentation can be greated with `godoc`
