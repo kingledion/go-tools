@@ -41,6 +41,9 @@ func (n *node) GetID() uint64 {
 }
 
 func (n *node) Add(children ...Node) {
+	if n.children == nil {
+		n.children = []Node{}
+	}
 	n.children = append(n.children, children[:]...)
 }
 
