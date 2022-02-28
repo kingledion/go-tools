@@ -12,6 +12,7 @@ func (t *Tree) BFS() <-chan Node {
 	go func() {
 		for {
 			if bfs(q, search) {
+				close(search)
 				break
 			}
 		}
