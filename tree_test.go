@@ -8,15 +8,30 @@ import (
 
 func TestRoot(t *testing.T) {
 
-	exp := node{}
-	tree := Tree{
-		root: &exp,
+	node1 := &node{primary: 1}
+
+	var tests = map[string]struct {
+		tree *Tree
+		exp  Node
+	}{
+		"nil root": {
+			tree: Empty(),
+			exp:  nil,
+		},
+		"non-nil root": {
+			tree: &Tree{
+				root: node1,
+			},
+			exp: node1,
+		},
 	}
 
-	got := tree.Root()
-
-	assert.Equal(t, &exp, got, "root pointers should be equal")
-
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.tree.Root()
+			assert.Equal(t, tt.exp, got)
+		})
+	}
 }
 
 type addInput struct {
@@ -88,14 +103,14 @@ func TestAdd(t *testing.T) {
 	}
 
 	for name, tt := range tests {
-		tree := tt.prep()
-		gotAdded, gotExists := tree.Add(tt.add.nodeID, tt.add.parentID, "")
+		t.Run(name, func(t *testing.T) {
+			tree := tt.prep()
+			gotAdded, gotExists := tree.Add(tt.add.nodeID, tt.add.parentID, "")
 
-		assert.Equal(t, tt.expAdded, gotAdded, "%s: bool added return value does not match", name)
-		assert.Equal(t, tt.expExists, gotExists, "%s: bool exists return value does not match", name)
-
+			assert.Equal(t, tt.expAdded, gotAdded)
+			assert.Equal(t, tt.expExists, gotExists)
+		})
 	}
-
 }
 
 func TestAddResults(t *testing.T) {
@@ -148,13 +163,15 @@ func TestAddResults(t *testing.T) {
 	}
 
 	for name, tt := range tests {
-		tree := Empty()
-		for _, input := range tt.adds {
-			tree.Add(input.nodeID, input.parentID, "")
-		}
+		t.Run(name, func(t *testing.T) {
+			tree := Empty()
+			for _, input := range tt.adds {
+				tree.Add(input.nodeID, input.parentID, "")
+			}
 
-		assert.Equal(t, tt.expBFC, bfc([]Node{tree.root}, []uint64{}), "%s: breadth-first search does not match", name)
-		assert.Equal(t, tt.expDFC, dfc(tree.root, []uint64{}), "%s: depth-first search does not match", name)
+			assert.Equal(t, tt.expBFC, bfc([]Node{tree.root}, []uint64{}))
+			assert.Equal(t, tt.expDFC, dfc(tree.root, []uint64{}))
+		})
 
 	}
 }
