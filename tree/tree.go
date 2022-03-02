@@ -85,7 +85,7 @@ func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, ex
 				return
 			}
 			// parent exists, add
-			child.addParent(parent)
+			child.SetParent(parent)
 			parent.Add(child)
 		}
 	}
@@ -98,17 +98,31 @@ func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, ex
 }
 
 func (t *Tree) reroot(newHead Node) {
-	t.root.addParent(newHead)
+	t.root.SetParent(newHead)
 	newHead.Add(t.root)
 	t.root = newHead
 }
 
-// func (t *Tree) Find(id uint) (bool, uint, interface{}) {
-// 	f := t.primary.find(id)
-// 	if f == nil {
-// 		return false, 0, ""
-// 	}
-// 	return true, f.GetID(), f.GetData()
-// }
+func (t *Tree) Find(id uint) (exists bool, n Node) {
+	f := t.primary.find(id)
+	if f == nil {
+		return
+	}
+	return true, f
+}
 
-// func (t *Tree) FindParents(id uint64)
+func (t *Tree) FindParents(id uint) (bool, []Node) {
+
+	exists, n := t.Find(id)
+	if !exists {
+		return false, nil
+	}
+
+	parents := []Node{}
+
+	for n = n.GetParent(); n != nil; n = n.GetParent() {
+		parents = append(parents, n)
+	}
+
+	return true, parents
+}

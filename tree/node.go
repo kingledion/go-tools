@@ -20,15 +20,8 @@ type Node interface {
 	Add(...Node)
 	// GetParent returns the parent node of this node.
 	GetParent() Node
-	// GetData returns the data held in this node
-	GetData() interface{}
 
-	addParent(n Node)
-}
-
-type NodeData struct {
-	Key  uint        `json:"key"`
-	Data interface{} `json:"data"`
+	SetParent(n Node)
 }
 
 type node struct {
@@ -62,11 +55,7 @@ func (n *node) GetParent() Node {
 	return n.parent
 }
 
-func (n *node) GetData() interface{} {
-	return n.data
-}
-
-func (n *node) addParent(parent Node) {
+func (n *node) SetParent(parent Node) {
 	n.parent = parent
 }
 

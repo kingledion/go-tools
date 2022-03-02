@@ -42,7 +42,7 @@ func TestGetID(t *testing.T) {
 
 	tests := map[string]struct {
 		n     Node
-		expID uint64
+		expID uint
 	}{
 		"success": {
 			n:     &node{primary: 1},

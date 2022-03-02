@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFind(t *testing.T) {
+func TestIndexFind(t *testing.T) {
 
 	node1 := &node{primary: 1}
 	node2 := &node{primary: 2}
