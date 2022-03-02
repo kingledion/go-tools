@@ -105,7 +105,7 @@ func TestIsParent(t *testing.T) {
 
 	tests := map[string]struct {
 		n       Node
-		argID   uint64
+		argID   uint
 		expBool bool
 	}{
 		"true": {

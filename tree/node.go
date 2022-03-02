@@ -13,20 +13,27 @@ type Node interface {
 	GetChildren() []Node
 	// IsParent returns a boolean true if the id parameter matches the parent
 	// of this node; and returns false otherwise.
-	IsParent(id uint64) bool
+	IsParent(id uint) bool
 	// GetID returns the primary key of this node.
-	GetID() uint64
+	GetID() uint
 	// Add adds a list of nodes as children of this node.
 	Add(...Node)
 	// GetParent returns the parent node of this node.
 	GetParent() Node
+	// GetData returns the data held in this node
+	GetData() interface{}
 
 	addParent(n Node)
 }
 
+type NodeData struct {
+	Key  uint        `json:"key"`
+	Data interface{} `json:"data"`
+}
+
 type node struct {
-	primary  uint64
-	parentID uint64
+	primary  uint
+	parentID uint
 	parent   Node
 	data     interface{}
 	children []Node
@@ -36,7 +43,7 @@ func (n *node) GetChildren() []Node {
 	return n.children
 }
 
-func (n *node) GetID() uint64 {
+func (n *node) GetID() uint {
 	return n.primary
 }
 
@@ -47,12 +54,16 @@ func (n *node) Add(children ...Node) {
 	n.children = append(n.children, children[:]...)
 }
 
-func (n *node) IsParent(id uint64) bool {
+func (n *node) IsParent(id uint) bool {
 	return n.parentID == id
 }
 
 func (n *node) GetParent() Node {
 	return n.parent
+}
+
+func (n *node) GetData() interface{} {
+	return n.data
 }
 
 func (n *node) addParent(parent Node) {

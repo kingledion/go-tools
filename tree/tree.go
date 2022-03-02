@@ -60,7 +60,7 @@ func (t *Tree) Root() Node {
 // new root. If there is a cyclical reference when attempting to re-root, i.e. the
 // parent of the existing root is the new node and the parent of the new node is
 // the exiting rool, the element will fail to add.
-func (t *Tree) Add(nodeID uint64, parentID uint64, data interface{}) (added bool, exists bool) {
+func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, exists bool) {
 	child := &node{primary: nodeID, parentID: parentID, data: data}
 
 	// Return false if this element has already been added
@@ -102,3 +102,13 @@ func (t *Tree) reroot(newHead Node) {
 	newHead.Add(t.root)
 	t.root = newHead
 }
+
+// func (t *Tree) Find(id uint) (bool, uint, interface{}) {
+// 	f := t.primary.find(id)
+// 	if f == nil {
+// 		return false, 0, ""
+// 	}
+// 	return true, f.GetID(), f.GetData()
+// }
+
+// func (t *Tree) FindParents(id uint64)

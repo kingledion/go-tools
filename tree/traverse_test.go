@@ -10,7 +10,7 @@ func TestBFS(t *testing.T) {
 
 	tests := map[string]struct {
 		tree      func() *Tree
-		expSearch []uint64
+		expSearch []uint
 	}{
 		"success": {
 			tree: func() *Tree {
@@ -22,7 +22,7 @@ func TestBFS(t *testing.T) {
 				node1 := &node{primary: 1, children: []Node{node2, node3}}
 				return &Tree{root: node1}
 			},
-			expSearch: []uint64{1, 2, 3, 6, 4, 5},
+			expSearch: []uint{1, 2, 3, 6, 4, 5},
 		},
 	}
 

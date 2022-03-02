@@ -13,7 +13,7 @@ func TestFind(t *testing.T) {
 
 	tests := map[string]struct {
 		index   index
-		argID   uint64
+		argID   uint
 		expNode Node
 	}{
 		"nil index": {

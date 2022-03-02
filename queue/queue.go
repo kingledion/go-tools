@@ -26,8 +26,9 @@ package queue
 // func (q *Queue) Push(e interface{}) {
 
 // 	q.upsize()
-// 	q.internal[q.in] = e
 // 	q.in = q.dec(q.in)
+// 	q.internal[q.in] = e
+
 // }
 
 // func (q *Queue) Pop() interface{} {

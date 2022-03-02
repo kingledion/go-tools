@@ -35,8 +35,8 @@ func TestRoot(t *testing.T) {
 }
 
 type addInput struct {
-	nodeID   uint64
-	parentID uint64
+	nodeID   uint
+	parentID uint
 }
 
 func TestAdd(t *testing.T) {
@@ -117,8 +117,8 @@ func TestAddResults(t *testing.T) {
 
 	var tests = map[string]struct {
 		adds   []addInput
-		expBFC []uint64
-		expDFC []uint64
+		expBFC []uint
+		expDFC []uint
 	}{
 		"three level parent-child": {
 			adds: []addInput{
@@ -126,8 +126,8 @@ func TestAddResults(t *testing.T) {
 				{2, 1},
 				{3, 2},
 			},
-			expBFC: []uint64{1, 2, 3},
-			expDFC: []uint64{1, 2, 3},
+			expBFC: []uint{1, 2, 3},
+			expDFC: []uint{1, 2, 3},
 		},
 		"three level multi-children": {
 			adds: []addInput{
@@ -136,8 +136,8 @@ func TestAddResults(t *testing.T) {
 				{3, 2},
 				{4, 1},
 			},
-			expBFC: []uint64{1, 2, 4, 3},
-			expDFC: []uint64{1, 2, 3, 4},
+			expBFC: []uint{1, 2, 4, 3},
+			expDFC: []uint{1, 2, 3, 4},
 		},
 		"re-root with a new subtree": {
 			adds: []addInput{
@@ -146,8 +146,8 @@ func TestAddResults(t *testing.T) {
 				{2, 0},
 				{4, 2},
 			},
-			expBFC: []uint64{2, 1, 4, 3},
-			expDFC: []uint64{2, 1, 3, 4},
+			expBFC: []uint{2, 1, 4, 3},
+			expDFC: []uint{2, 1, 3, 4},
 		},
 		"failed inserts": {
 			adds: []addInput{
@@ -157,8 +157,8 @@ func TestAddResults(t *testing.T) {
 				{2, 1},
 				{4, 5},
 			},
-			expBFC: []uint64{1, 2, 3},
-			expDFC: []uint64{1, 2, 3},
+			expBFC: []uint{1, 2, 3},
+			expDFC: []uint{1, 2, 3},
 		},
 	}
 
@@ -169,8 +169,8 @@ func TestAddResults(t *testing.T) {
 				tree.Add(input.nodeID, input.parentID, "")
 			}
 
-			assert.Equal(t, tt.expBFC, bfc([]Node{tree.root}, []uint64{}))
-			assert.Equal(t, tt.expDFC, dfc(tree.root, []uint64{}))
+			assert.Equal(t, tt.expBFC, bfc([]Node{tree.root}, []uint{}))
+			assert.Equal(t, tt.expDFC, dfc(tree.root, []uint{}))
 		})
 
 	}
