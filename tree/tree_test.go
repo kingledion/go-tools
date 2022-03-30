@@ -175,3 +175,7 @@ func TestAddResults(t *testing.T) {
 
 	}
 }
+
+func TestFind(t *testing.T) {
+
+}
