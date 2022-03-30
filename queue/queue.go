@@ -1,43 +1,19 @@
 package queue
 
-// type Queue struct {
-// 	internal []interface{}
-// 	in       int // points to empty spot for next push
-// 	out      int // points to element for next pop
-// }
+type queue struct {
+	q chan interface{}
+}
 
-// func New() *Queue {
-// 	return &Queue{internal: make([]interface{}, 1)}
-// }
+func new(capacity int) *queue {
+	return &queue{
+		q: make(chan interface{}, capacity),
+	}
+}
 
-// func (q *Queue) upsize() {
+func (q *queue) push(elem interface{}) {
+	q.q <- elem
+}
 
-// }
-
-// func (q *Queue) downsize() {
-
-// }
-
-// func (q *Queue) dec(i int) int {
-// 	return (i - 1) & (len(q.internal) - 1)
-// }
-
-// // Push
-// func (q *Queue) Push(e interface{}) {
-
-// 	q.upsize()
-// 	q.in = q.dec(q.in)
-// 	q.internal[q.in] = e
-
-// }
-
-// func (q *Queue) Pop() interface{} {
-// 	o := q.internal[q.out]
-// 	if o == nil {
-// 		return nil
-// 	}
-// 	q.internal[q.out] = nil
-// 	q.out = q.dec(q.out)
-// 	q.downsize()
-// 	return o
-// }
+func (q *queue) pop() interface{} {
+	return <-q.q
+}
