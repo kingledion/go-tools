@@ -103,26 +103,36 @@ func (t *Tree) reroot(newHead Node) {
 	t.root = newHead
 }
 
-func (t *Tree) Find(id uint) (exists bool, n Node) {
+// Find looks up a node by its primary key. If the node is found, then
+// ok is true and a Node is returned. If the node is not found, then
+// ok is false an a nil pointer is returned.
+func (t *Tree) Find(id uint) (n Node, ok bool) {
 	f := t.primary.find(id)
 	if f == nil {
 		return
 	}
-	return true, f
+	return f, true
 }
 
-func (t *Tree) FindParents(id uint) (bool, []Node) {
+// FindParents finds the list of all parent nodes between a target node and the
+// root of a tree. The node is identified by its primary key. If the primary
+// key cannot be found in the tree, then ok is false and an empty array is returned.
+// If the target node is found in the tree, then ok is true and the parent nodes
+// are returned in an array. If the target node is the root of the tree, the
+// parent nodes array is empty.
+//
+// The parent nodes array is ordered from immediate parent first to tree root
+// last.
+func (t *Tree) FindParents(id uint) (parents []Node, ok bool) {
 
-	exists, n := t.Find(id)
-	if !exists {
-		return false, nil
+	f := t.primary.find(id)
+	if f == nil {
+		return
 	}
 
-	parents := []Node{}
-
-	for n = n.GetParent(); n != nil; n = n.GetParent() {
+	for n := f.GetParent(); n != nil; n = n.GetParent() {
 		parents = append(parents, n)
 	}
 
-	return true, parents
+	return parents, true
 }
