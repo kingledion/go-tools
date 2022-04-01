@@ -60,6 +60,9 @@ func (t *Tree) Root() Node {
 // new root. If there is a cyclical reference when attempting to re-root, i.e. the
 // parent of the existing root is the new node and the parent of the new node is
 // the exiting rool, the element will fail to add.
+//
+// Do not set a primaryID to zero, as this value should be reserved for the
+// case where a node has no parent.
 func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, exists bool) {
 	child := &node{primary: nodeID, parentID: parentID, data: data}
 
@@ -75,18 +78,18 @@ func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, ex
 
 		parent := t.primary.find(parentID)
 		if parent == nil {
-			if t.root.IsParent(nodeID) { // parent does not exist but incoming node is parent of root
+			if t.root.GetParentID() == nodeID { // parent does not exist but incoming node is parent of root
 				t.reroot(child)
 			} else { // parent does not exist, do not add
 				return
 			}
 		} else {
-			if t.root.IsParent(nodeID) { // parent exists, but incoming node causes cycle
+			if t.root.GetParentID() == nodeID { // parent exists, but incoming node causes cycle
 				return
 			}
 			// parent exists, add
-			child.addParent(parent)
-			parent.Add(child)
+			child.SetParent(parent)
+			parent.AddChildren(child)
 		}
 	}
 
@@ -98,17 +101,75 @@ func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, ex
 }
 
 func (t *Tree) reroot(newHead Node) {
-	t.root.addParent(newHead)
-	newHead.Add(t.root)
+	t.root.SetParent(newHead)
+	newHead.AddChildren(t.root)
 	t.root = newHead
 }
 
-// func (t *Tree) Find(id uint) (bool, uint, interface{}) {
-// 	f := t.primary.find(id)
-// 	if f == nil {
-// 		return false, 0, ""
-// 	}
-// 	return true, f.GetID(), f.GetData()
-// }
+// Merge another tree into this tree. If the merge is successful, returns
+// true, otherwise return false.
+func (t *Tree) Merge(other *Tree) bool {
 
-// func (t *Tree) FindParents(id uint64)
+	if other == nil {
+		return false
+	}
+
+	headParent := other.root.GetParentID()
+
+	f := t.primary.find(headParent)
+	if f != nil {
+
+		// check for duplicate primary ids
+		for k := range *other.primary {
+			if t.primary.find(k) != nil {
+				return false
+			}
+		}
+
+		f.AddChildren(other.root)
+		other.root.SetParent(f)
+
+		// copy other index to new tree
+		for k, n := range *other.primary {
+			t.primary.insert(k, n)
+		}
+		return true
+	}
+
+	return false
+
+}
+
+// Find looks up a node by its primary key. If the node is found, then
+// ok is true and a Node is returned. If the node is not found, then
+// ok is false an a nil pointer is returned.
+func (t *Tree) Find(id uint) (n Node, ok bool) {
+	f := t.primary.find(id)
+	if f == nil {
+		return
+	}
+	return f, true
+}
+
+// FindParents finds the list of all parent nodes between a target node and the
+// root of a tree. The node is identified by its primary key. If the primary
+// key cannot be found in the tree, then ok is false and an empty array is returned.
+// If the target node is found in the tree, then ok is true and the parent nodes
+// are returned in an array. If the target node is the root of the tree, the
+// parent nodes array is empty.
+//
+// The parent nodes array is ordered from immediate parent first to tree root
+// last.
+func (t *Tree) FindParents(id uint) (parents []Node, ok bool) {
+
+	f := t.primary.find(id)
+	if f == nil {
+		return
+	}
+
+	for n := f.GetParent(); n != nil; n = n.GetParent() {
+		parents = append(parents, n)
+	}
+
+	return parents, true
+}

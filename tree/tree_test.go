@@ -171,7 +171,274 @@ func TestAddResults(t *testing.T) {
 
 			assert.Equal(t, tt.expBFC, bfc([]Node{tree.root}, []uint{}))
 			assert.Equal(t, tt.expDFC, dfc(tree.root, []uint{}))
+
+			for _, key := range tt.expBFC {
+				k := tree.primary.find(key)
+				if assert.NotNil(t, k, "Expceted value for %d not to be nil", key) {
+					assert.Equal(t, key, k.GetID())
+				}
+			}
 		})
 
+	}
+}
+
+func TestFind(t *testing.T) {
+
+	var tests = map[string]struct {
+		prep      func() *Tree
+		argID     uint
+		expNodeID uint
+		expOK     bool
+	}{
+		"primary does not exist": {
+			prep: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				return t
+			},
+			argID:     3,
+			expNodeID: 0,
+			expOK:     false,
+		},
+		"primary exists - branch end": {
+			prep: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				t.Add(3, 2, "")
+				t.Add(4, 1, "")
+				return t
+			},
+			argID:     3,
+			expNodeID: 3,
+			expOK:     true,
+		},
+		"primary exists - mid tree": {
+			prep: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				t.Add(3, 2, "")
+				t.Add(4, 1, "")
+				return t
+			},
+			argID:     2,
+			expNodeID: 2,
+			expOK:     true,
+		},
+		"primary exists - root": {
+			prep: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				t.Add(3, 2, "")
+				t.Add(4, 1, "")
+				return t
+			},
+			argID:     1,
+			expNodeID: 1,
+			expOK:     true,
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			tree := tt.prep()
+			gotNode, gotOK := tree.Find(tt.argID)
+
+			var gotNodeID uint = 0
+			if gotNode != nil {
+				gotNodeID = gotNode.GetID()
+			}
+
+			assert.Equal(t, tt.expOK, gotOK)
+			assert.Equal(t, tt.expNodeID, gotNodeID)
+		})
+	}
+}
+
+func TestFindParents(t *testing.T) {
+
+	var tests = map[string]struct {
+		prep       func() *Tree
+		argID      uint
+		expNodeIDs []uint
+		expOK      bool
+	}{
+		"primary does not exist": {
+			prep: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				return t
+			},
+			argID:      3,
+			expNodeIDs: []uint{},
+			expOK:      false,
+		},
+		"primary exists - branch end": {
+			prep: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				t.Add(3, 2, "")
+				t.Add(4, 1, "")
+				return t
+			},
+			argID:      3,
+			expNodeIDs: []uint{2, 1},
+			expOK:      true,
+		},
+		"primary exists - mid tree": {
+			prep: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				t.Add(3, 2, "")
+				t.Add(4, 1, "")
+				return t
+			},
+			argID:      2,
+			expNodeIDs: []uint{1},
+			expOK:      true,
+		},
+		"primary exists - root": {
+			prep: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				t.Add(3, 2, "")
+				t.Add(4, 1, "")
+				return t
+			},
+			argID:      1,
+			expNodeIDs: []uint{},
+			expOK:      true,
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			tree := tt.prep()
+			gotNodes, gotOK := tree.FindParents(tt.argID)
+
+			var gotNodeIDs = make([]uint, len(gotNodes))
+			if gotNodes != nil {
+				for i, n := range gotNodes {
+					gotNodeIDs[i] = n.GetID()
+				}
+			}
+
+			assert.Equal(t, tt.expOK, gotOK)
+			assert.Equal(t, tt.expNodeIDs, gotNodeIDs)
+		})
+	}
+}
+
+func TestMerge(t *testing.T) {
+
+	var tests = map[string]struct {
+		prepRoot  func() *Tree
+		prepOther func() *Tree
+		expOK     bool
+		expBFC    []uint
+		expDFC    []uint
+	}{
+		"other parent not in tree": {
+			prepRoot: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				return t
+			},
+			prepOther: func() *Tree {
+				n := &node{primary: 3}
+				t := &Tree{root: n, primary: &index{3: n}}
+				t.Add(4, 3, "")
+				return t
+			},
+			expOK:  false,
+			expBFC: []uint{1, 2},
+			expDFC: []uint{1, 2},
+		},
+		"dulicate keys": {
+			prepRoot: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				return t
+			},
+			prepOther: func() *Tree {
+				t := Empty()
+				t.Add(3, 1, "")
+				t.Add(2, 3, "")
+				return t
+			},
+			expOK:  false,
+			expBFC: []uint{1, 2},
+			expDFC: []uint{1, 2},
+		},
+		"merged - branch end": {
+			prepRoot: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				t.Add(3, 2, "")
+				t.Add(4, 2, "")
+				t.Add(5, 1, "")
+				return t
+			},
+			prepOther: func() *Tree {
+				t := Empty()
+				t.Add(6, 5, "")
+				t.Add(7, 6, "")
+				return t
+			},
+			expOK:  true,
+			expBFC: []uint{1, 2, 5, 3, 4, 6, 7},
+			expDFC: []uint{1, 2, 3, 4, 5, 6, 7},
+		},
+		"merged - mid tree": {
+			prepRoot: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				t.Add(3, 2, "")
+				t.Add(4, 2, "")
+				t.Add(5, 1, "")
+				return t
+			},
+			prepOther: func() *Tree {
+				t := Empty()
+				t.Add(6, 1, "")
+				t.Add(7, 6, "")
+				return t
+			},
+			expOK:  true,
+			expBFC: []uint{1, 2, 5, 6, 3, 4, 7},
+			expDFC: []uint{1, 2, 3, 4, 5, 6, 7},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			tree := tt.prepRoot()
+			other := tt.prepOther()
+			gotOK := tree.Merge(other)
+
+			assert.Equal(t, tt.expOK, gotOK)
+
+			assert.Equal(t, tt.expBFC, bfc([]Node{tree.root}, []uint{}))
+			assert.Equal(t, tt.expDFC, dfc(tree.root, []uint{}))
+
+			for _, key := range tt.expBFC {
+				k := tree.primary.find(key)
+				if assert.NotNil(t, k, "Expceted value for %d not to be nil", key) {
+					assert.Equal(t, key, k.GetID())
+				}
+			}
+		})
 	}
 }
