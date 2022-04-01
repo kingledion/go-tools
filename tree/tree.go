@@ -60,6 +60,9 @@ func (t *Tree) Root() Node {
 // new root. If there is a cyclical reference when attempting to re-root, i.e. the
 // parent of the existing root is the new node and the parent of the new node is
 // the exiting rool, the element will fail to add.
+//
+// Do not set a primaryID to zero, as this value should be reserved for the
+// case where a node has no parent.
 func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, exists bool) {
 	child := &node{primary: nodeID, parentID: parentID, data: data}
 
@@ -75,18 +78,18 @@ func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, ex
 
 		parent := t.primary.find(parentID)
 		if parent == nil {
-			if t.root.IsParent(nodeID) { // parent does not exist but incoming node is parent of root
+			if t.root.GetParentID() == nodeID { // parent does not exist but incoming node is parent of root
 				t.reroot(child)
 			} else { // parent does not exist, do not add
 				return
 			}
 		} else {
-			if t.root.IsParent(nodeID) { // parent exists, but incoming node causes cycle
+			if t.root.GetParentID() == nodeID { // parent exists, but incoming node causes cycle
 				return
 			}
 			// parent exists, add
 			child.SetParent(parent)
-			parent.Add(child)
+			parent.AddChildren(child)
 		}
 	}
 
@@ -99,8 +102,42 @@ func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, ex
 
 func (t *Tree) reroot(newHead Node) {
 	t.root.SetParent(newHead)
-	newHead.Add(t.root)
+	newHead.AddChildren(t.root)
 	t.root = newHead
+}
+
+// Merge another tree into this tree. If the merge is successful, returns
+// true, otherwise return false.
+func (t *Tree) Merge(other *Tree) bool {
+
+	if other == nil {
+		return false
+	}
+
+	headParent := other.root.GetParentID()
+
+	f := t.primary.find(headParent)
+	if f != nil {
+
+		// check for duplicate primary ids
+		for k := range *other.primary {
+			if t.primary.find(k) != nil {
+				return false
+			}
+		}
+
+		f.AddChildren(other.root)
+		other.root.SetParent(f)
+
+		// copy other index to new tree
+		for k, n := range *other.primary {
+			t.primary.insert(k, n)
+		}
+		return true
+	}
+
+	return false
+
 }
 
 // Find looks up a node by its primary key. If the node is found, then

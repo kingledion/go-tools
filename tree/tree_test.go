@@ -171,6 +171,13 @@ func TestAddResults(t *testing.T) {
 
 			assert.Equal(t, tt.expBFC, bfc([]Node{tree.root}, []uint{}))
 			assert.Equal(t, tt.expDFC, dfc(tree.root, []uint{}))
+
+			for _, key := range tt.expBFC {
+				k := tree.primary.find(key)
+				if assert.NotNil(t, k, "Expceted value for %d not to be nil", key) {
+					assert.Equal(t, key, k.GetID())
+				}
+			}
 		})
 
 	}
@@ -326,6 +333,112 @@ func TestFindParents(t *testing.T) {
 
 			assert.Equal(t, tt.expOK, gotOK)
 			assert.Equal(t, tt.expNodeIDs, gotNodeIDs)
+		})
+	}
+}
+
+func TestMerge(t *testing.T) {
+
+	var tests = map[string]struct {
+		prepRoot  func() *Tree
+		prepOther func() *Tree
+		expOK     bool
+		expBFC    []uint
+		expDFC    []uint
+	}{
+		"other parent not in tree": {
+			prepRoot: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				return t
+			},
+			prepOther: func() *Tree {
+				n := &node{primary: 3}
+				t := &Tree{root: n, primary: &index{3: n}}
+				t.Add(4, 3, "")
+				return t
+			},
+			expOK:  false,
+			expBFC: []uint{1, 2},
+			expDFC: []uint{1, 2},
+		},
+		"dulicate keys": {
+			prepRoot: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				return t
+			},
+			prepOther: func() *Tree {
+				t := Empty()
+				t.Add(3, 1, "")
+				t.Add(2, 3, "")
+				return t
+			},
+			expOK:  false,
+			expBFC: []uint{1, 2},
+			expDFC: []uint{1, 2},
+		},
+		"merged - branch end": {
+			prepRoot: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				t.Add(3, 2, "")
+				t.Add(4, 2, "")
+				t.Add(5, 1, "")
+				return t
+			},
+			prepOther: func() *Tree {
+				t := Empty()
+				t.Add(6, 5, "")
+				t.Add(7, 6, "")
+				return t
+			},
+			expOK:  true,
+			expBFC: []uint{1, 2, 5, 3, 4, 6, 7},
+			expDFC: []uint{1, 2, 3, 4, 5, 6, 7},
+		},
+		"merged - mid tree": {
+			prepRoot: func() *Tree {
+				n := &node{primary: 1}
+				t := &Tree{root: n, primary: &index{1: n}}
+				t.Add(2, 1, "")
+				t.Add(3, 2, "")
+				t.Add(4, 2, "")
+				t.Add(5, 1, "")
+				return t
+			},
+			prepOther: func() *Tree {
+				t := Empty()
+				t.Add(6, 1, "")
+				t.Add(7, 6, "")
+				return t
+			},
+			expOK:  true,
+			expBFC: []uint{1, 2, 5, 6, 3, 4, 7},
+			expDFC: []uint{1, 2, 3, 4, 5, 6, 7},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			tree := tt.prepRoot()
+			other := tt.prepOther()
+			gotOK := tree.Merge(other)
+
+			assert.Equal(t, tt.expOK, gotOK)
+
+			assert.Equal(t, tt.expBFC, bfc([]Node{tree.root}, []uint{}))
+			assert.Equal(t, tt.expDFC, dfc(tree.root, []uint{}))
+
+			for _, key := range tt.expBFC {
+				k := tree.primary.find(key)
+				if assert.NotNil(t, k, "Expceted value for %d not to be nil", key) {
+					assert.Equal(t, key, k.GetID())
+				}
+			}
 		})
 	}
 }

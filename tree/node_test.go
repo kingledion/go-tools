@@ -59,7 +59,7 @@ func TestGetID(t *testing.T) {
 	}
 }
 
-func TestNodeAdd(t *testing.T) {
+func TestNodeAddChildren(t *testing.T) {
 
 	node1 := &node{primary: 1}
 	node2 := &node{primary: 2}
@@ -80,9 +80,14 @@ func TestNodeAdd(t *testing.T) {
 			argNode:  []Node{node1},
 			expChild: []Node{node1},
 		},
-		"add none": {
+		"add nil": {
 			n:        &node{children: []Node{node1}},
 			argNode:  nil,
+			expChild: []Node{node1},
+		},
+		"add empty array": {
+			n:        &node{children: []Node{node1}},
+			argNode:  []Node{},
 			expChild: []Node{node1},
 		},
 		"non-empty child array": {
@@ -94,32 +99,30 @@ func TestNodeAdd(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			tt.n.Add(tt.argNode...)
+			tt.n.AddChildren(tt.argNode...)
 
 			assert.Equal(t, tt.expChild, tt.n.GetChildren())
 		})
 	}
 }
 
-func TestIsParent(t *testing.T) {
+func TestGetParentID(t *testing.T) {
 
 	tests := map[string]struct {
-		n       Node
-		argID   uint
-		expBool bool
+		n   Node
+		exp uint
 	}{
-		"true": {
-			n:       &node{parentID: 1},
-			argID:   1,
-			expBool: true,
+		"trivial": {
+			n:   &node{parentID: 1},
+			exp: 1,
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			gotBool := tt.n.IsParent(tt.argID)
+			got := tt.n.GetParentID()
 
-			assert.Equal(t, tt.expBool, gotBool)
+			assert.Equal(t, tt.exp, got)
 		})
 	}
 }
