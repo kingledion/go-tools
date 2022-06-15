@@ -58,8 +58,8 @@ func (t *Tree) Root() Node {
 // If the element to be added has a primary key that matches the parent key
 // of the root node, the tree will be re-rooted by adding this element as the
 // new root. If there is a cyclical reference when attempting to re-root, i.e. the
-// parent of the existing root is the new node and the parent of the new node is
-// the exiting rool, the element will fail to add.
+// parent of the existing root is the new node and the parent of the new node
+// exists elsewhere in the tree, the element will fail to add.
 //
 // Do not set a primaryID to zero, as this value should be reserved for the
 // case where a node has no parent.
