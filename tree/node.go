@@ -6,7 +6,7 @@ import "fmt"
 // internal node representation, but any custom structure meeting this
 // interface can be substituted.
 //
-// Any implementation of Node should exists as a pointer to a structure, or
+// Any implementation of Node should exist as a pointer to a structure, or
 // else there will be serious performance ramifications.
 //
 // The properties of a node are that it has a uint primary key, a parent
@@ -15,6 +15,11 @@ import "fmt"
 // represents the primary key ID of a parent that may not be added to the
 // tree yet. This value can be specified to indentify parents added to the
 // tree after their children.
+//
+// The node also has arbitrary data attached to it; any struct may be inserted
+// as the data. However, because the data is not specified, this trait contains
+// no functionality to modify the data in place. The data should be implemented
+// as a pointer to avoid performance ramifications.
 type Node interface {
 	// GetID returns the primary key of this node.
 	GetID() uint
