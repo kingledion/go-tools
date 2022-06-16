@@ -20,6 +20,12 @@ This package includes a breadth first search algorithm.
 */
 package tree
 
+import (
+	"encoding/gob"
+	"fmt"
+	"io"
+)
+
 // Tree is a data structure representing a tree. It contains a pointer to
 // a root node and an index of primary keys.
 type Tree struct {
@@ -64,7 +70,7 @@ func (t *Tree) Root() Node {
 // Do not set a primaryID to zero, as this value should be reserved for the
 // case where a node has no parent.
 func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, exists bool) {
-	child := &node{primary: nodeID, parentID: parentID, data: data}
+	child := &node{Primary: nodeID, ParentID: parentID, Data: data}
 
 	// Return false if this element has already been added
 	if t.primary.find(nodeID) != nil {
@@ -106,8 +112,14 @@ func (t *Tree) reroot(newHead Node) {
 	t.root = newHead
 }
 
-// Merge another tree into this tree. If the merge is successful, returns
-// true, otherwise return false.
+// Merge another tree (passed in the argument) into the target tree (passed as the
+// subject of this method call). All data from the other tree is added to the target
+// tree.
+//
+// If the merge is successful, returns true, otherwise return false. The merge can
+// fail if there are duplicate primary keys between the two trees. The merge
+// can also fail if the parent of the head of the other tree is not found in the
+// target tree.
 func (t *Tree) Merge(other *Tree) bool {
 
 	if other == nil {
@@ -172,4 +184,60 @@ func (t *Tree) FindParents(id uint) (parents []Node, ok bool) {
 	}
 
 	return parents, true
+}
+
+// Serialize encodes the tree as a byte stream.
+//
+// The argument io.Writer will recieve the serialized bytes. The argument
+// TraversalType will determine the traversal order in which the tree is
+// serialized. TraversalType does not have to be remembered for
+// deserialization; the internal metadata of the nodes directs how the
+// tree is rebuilt, not the order in which the nodes are serialized
+// to storage.
+func (t *Tree) Serialize(trvsl TraversalType) (io.ReadCloser, <-chan error) {
+	reader, writer := io.Pipe()
+	errchan := make(chan error)
+
+	go func() {
+		encoder := gob.NewEncoder(writer)
+		for n := range t.Traverse(trvsl) {
+			err := encoder.Encode(n)
+			if err != nil {
+				errchan <- err
+				writer.Close()
+				return
+			}
+
+		}
+
+		close(errchan)
+		writer.Close()
+	}()
+
+	return reader, errchan
+}
+
+// Deserialize decodes a data source into a tree.
+//
+// Elements from the data store are read one by one as decoded gobs.
+// These elements are resolved into nodes, and then inserted into the tree.
+func Deserialize(stream io.ReadCloser) (*Tree, error) {
+	decoder := gob.NewDecoder(stream)
+	var n Node
+	var t *Tree = Empty()
+	for {
+
+		err := decoder.Decode(n)
+		if err == io.EOF {
+			return t, nil
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("error deserializing: %w", err)
+		}
+
+		t.Add(n.GetID(), n.GetParentID(), n.GetData())
+
+	}
+
 }

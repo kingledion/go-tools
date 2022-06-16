@@ -1,6 +1,8 @@
 package tree
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Node is the interface for a node within this tree. This package has an
 // internal node representation, but any custom structure meeting this
@@ -20,6 +22,10 @@ import "fmt"
 // as the data. However, because the data is not specified, this trait contains
 // no functionality to modify the data in place. The data should be implemented
 // as a pointer to avoid performance ramifications.
+//
+// Both the node implementation and the arbitrary data must be serializable
+// using the gob encoding. If either node or arbitrary data is not, the
+// Tree.Serialize() function will throw serialization errors when called.
 type Node interface {
 	// GetID returns the primary key of this node.
 	GetID() uint
@@ -38,26 +44,31 @@ type Node interface {
 	// SetParent sets this node's parent to be the argument Node
 	SetParent(n Node)
 
-	// GetData retruns the node's data.
+	// GetData retruns the node's internal data.
 	GetData() interface{}
-	// ReplaceData replaces nodes data with the argument.
-	ReplaceData(interface{})
+	// SetData replaces nodes data with the argument. The argument may be any
+	// type, but must be serializable via gob.
+	//
+	// This function does not attempt to encode via a gob when the data is set;
+	// any error with encoding will only occur when the data is serialized
+	// to a repository.
+	SetData(interface{})
 }
 
 type node struct {
-	primary  uint
-	parentID uint
+	Primary  uint
+	ParentID uint
 	parent   Node
-	data     interface{}
+	Data     interface{}
 	children []Node
 }
 
 func (n *node) GetID() uint {
-	return n.primary
+	return n.Primary
 }
 
 func (n *node) GetParentID() uint {
-	return n.parentID
+	return n.ParentID
 }
 
 func (n *node) GetChildren() []Node {
@@ -85,17 +96,17 @@ func (n *node) SetParent(parent Node) {
 }
 
 func (n *node) GetData() interface{} {
-	return n.data
+	return n.Data
 }
 
-func (n *node) ReplaceData(newData interface{}) {
-	n.data = newData
+func (n *node) SetData(newdata interface{}) {
+	n.Data = newdata
 }
 
 func (n *node) Format(f fmt.State, verb rune) {
 	switch verb {
 	case 'v':
-		fmt.Fprintf(f, "{primary: %d parentID: %d data:%+v children:[", n.primary, n.parentID, n.data)
+		fmt.Fprintf(f, "{primary: %d parentID: %d data:%+v children:[", n.Primary, n.ParentID, n.Data)
 		for i, n := range n.children {
 			if i != 0 {
 				fmt.Fprint(f, " ")

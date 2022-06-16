@@ -8,8 +8,8 @@ import (
 
 func TestGetChildren(t *testing.T) {
 
-	node1 := &node{primary: 1}
-	node2 := &node{primary: 2}
+	node1 := &node{Primary: 1}
+	node2 := &node{Primary: 2}
 
 	tests := map[string]struct {
 		n        Node
@@ -45,7 +45,7 @@ func TestGetID(t *testing.T) {
 		expID uint
 	}{
 		"success": {
-			n:     &node{primary: 1},
+			n:     &node{Primary: 1},
 			expID: 1,
 		},
 	}
@@ -61,9 +61,9 @@ func TestGetID(t *testing.T) {
 
 func TestNodeAddChildren(t *testing.T) {
 
-	node1 := &node{primary: 1}
-	node2 := &node{primary: 2}
-	node3 := &node{primary: 3}
+	node1 := &node{Primary: 1}
+	node2 := &node{Primary: 2}
+	node3 := &node{Primary: 3}
 
 	tests := map[string]struct {
 		n        Node
@@ -113,7 +113,7 @@ func TestGetParentID(t *testing.T) {
 		exp uint
 	}{
 		"trivial": {
-			n:   &node{parentID: 1},
+			n:   &node{ParentID: 1},
 			exp: 1,
 		},
 	}
@@ -129,7 +129,7 @@ func TestGetParentID(t *testing.T) {
 
 func TestGetParent(t *testing.T) {
 
-	node1 := &node{primary: 1}
+	node1 := &node{Primary: 1}
 
 	tests := map[string]struct {
 		n       Node
