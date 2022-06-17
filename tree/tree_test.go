@@ -1,8 +1,10 @@
 package tree
 
 import (
-	"encoding/gob"
+	"encoding/json"
 	"io"
+	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -447,46 +449,105 @@ func TestMerge(t *testing.T) {
 
 func TestSerialize(t *testing.T) {
 
+	type Serializable struct {
+		SomeData  string
+		OtherData []int
+	}
+
+	type embeddedSerializable struct {
+		Serializable
+		ExtraString string
+	}
+
+	type CannotSerialize struct {
+		Unserializable func() error
+	}
+
 	var tests = map[string]struct {
-		tree      func() *Tree
+		prep      func() *Tree
 		traversal TraversalType
+		expCount  int
 		expErr    error
 	}{
 		"empty": {
-			tree:      Empty,
+			prep:      Empty,
 			traversal: TraverseBreadthFirst,
+		},
+		"breadth-first": {
+			prep: func() *Tree {
+
+				t := Empty()
+				t.Add(1, 0, Serializable{"valuable data", []int{1, 2, 3, 4, 5, 6, 7, 8}})
+				t.Add(2, 1, map[string]string{"us": "good", "them": "bad"})
+				es := embeddedSerializable{
+					Serializable: Serializable{"first", []int{1}},
+					ExtraString:  "second",
+				}
+				t.Add(3, 2, es)
+				t.Add(4, 1, "Plain ol' data")
+				t.Add(5, 4, 1234)
+				return t
+			},
+			traversal: TraverseBreadthFirst,
+			expCount:  5,
+		},
+		"cannot serialize": {
+			prep: func() *Tree {
+
+				t := Empty()
+				t.Add(2, 1, CannotSerialize{})
+				return t
+			},
+			traversal: TraverseBreadthFirst,
+			expErr: &json.UnsupportedTypeError{
+				Type: reflect.TypeOf(func() error { return nil }),
+			},
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 
-			rdr, senderr := tt.tree().Serialize(tt.traversal)
+			rdr, senderr := tt.prep().Serialize(tt.traversal)
 
-			var count int = 0
+			var gotCount int = 0
 			var block interface{}
+
+			var wg sync.WaitGroup
+			wg.Add(1)
 
 			go func() {
 				defer rdr.Close()
-				decoder := gob.NewDecoder(rdr)
+				decoder := json.NewDecoder(rdr)
 				for {
-					err := decoder.Decode(block)
+					err := decoder.Decode(&block)
 					if err == io.EOF {
+						// end of file
+						//t.Logf("deserialize - eof")
+						wg.Done()
 						return
 					}
-					if err != nil {
-						count = count + 1
+					if err == nil {
+						//t.Logf("deserialize - success")
+						// successful decoding
+						gotCount = gotCount + 1
 					}
+					//t.Logf("deserialize - error: %s", err)
+					// if decoder throws an error, we ignore it; decoding is tested
+					// in a separate unit test for Deserialize
 				}
 			}()
 
-			t.Logf("Waiting for the send channel to close or something")
-			gotErr, ok := <-senderr
-			if !ok {
-				t.Logf("Got to case where the send channel is closed")
+			// wait for sender to finish and see if any errors occur
+			gotErr := <-senderr
+
+			// wait for reciever to finish
+			wg.Wait()
+
+			if gotErr != nil || tt.expErr != nil {
+				assert.Equal(t, tt.expErr, gotErr)
 			} else {
-				t.Logf("Got to the case where the send channel go something")
-				assert.Equal(t, gotErr, tt.expErr)
+				assert.Equal(t, tt.expCount, gotCount)
 			}
 		})
 
@@ -495,18 +556,48 @@ func TestSerialize(t *testing.T) {
 
 func TestDeserialize(t *testing.T) {
 
+	type Serializable struct {
+		SomeData  string
+		OtherData []int
+	}
+
+	type embeddedSerializable struct {
+		Serializable
+		ExtraString string
+	}
+
 	var tests = map[string]struct {
-		tree      func() *Tree
-		traversal TraversalType
-		expErr    error
-		expBFC    []uint
-		expDFC    []uint
+		prep       func() *Tree
+		traversal  TraversalType
+		expErr     error
+		expBFC     []uint
+		expDFC     []uint
+		expBFCData []interface{}
 	}{
 		"empty": {
-			tree:      Empty,
+			prep:      Empty,
 			traversal: TraverseBreadthFirst,
 			expBFC:    []uint{},
 			expDFC:    []uint{},
+		},
+		"breadth-first": {
+			prep: func() *Tree {
+
+				t := Empty()
+				t.Add(1, 0, Serializable{"valuable data", []int{1, 2, 3, 4, 5, 6, 7, 8}})
+				t.Add(2, 1, map[string]string{"us": "good", "them": "bad"})
+				es := embeddedSerializable{
+					Serializable: Serializable{"first", []int{1}},
+					ExtraString:  "second",
+				}
+				t.Add(3, 2, es)
+				t.Add(4, 1, "Plain ol' data")
+				t.Add(5, 4, 1234)
+				return t
+			},
+			traversal: TraverseBreadthFirst,
+			expBFC:    []uint{1, 2, 4, 3, 5},
+			expDFC:    []uint{1, 2, 3, 4, 5},
 		},
 	}
 
@@ -514,7 +605,7 @@ func TestDeserialize(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 
 			// this test assumes that Serialize will throw no errors
-			rdr, _ := tt.tree().Serialize(tt.traversal)
+			rdr, _ := tt.prep().Serialize(tt.traversal)
 
 			//t.Logf("Started to serialize")
 
@@ -524,7 +615,7 @@ func TestDeserialize(t *testing.T) {
 
 			assert.Equal(t, tt.expErr, gotErr)
 			//t.Logf("Arguments: %+v\n", tt)
-			//t.Logf("Results: {tree: %+v, error %+v}\n", gotTree, gotErr)
+			t.Logf("Results: {tree: %+v, error %+v}\n", gotTree, gotErr)
 
 			// only check the tree value if both expected and got errors are nil
 			if gotErr == nil && tt.expErr == nil {

@@ -21,7 +21,7 @@ This package includes a breadth first search algorithm.
 package tree
 
 import (
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"io"
 )
@@ -199,7 +199,7 @@ func (t *Tree) Serialize(trvsl TraversalType) (io.ReadCloser, <-chan error) {
 	errchan := make(chan error)
 
 	go func() {
-		encoder := gob.NewEncoder(writer)
+		encoder := json.NewEncoder(writer)
 		for n := range t.Traverse(trvsl) {
 			err := encoder.Encode(n)
 			if err != nil {
@@ -222,20 +222,23 @@ func (t *Tree) Serialize(trvsl TraversalType) (io.ReadCloser, <-chan error) {
 // Elements from the data store are read one by one as decoded gobs.
 // These elements are resolved into nodes, and then inserted into the tree.
 func Deserialize(stream io.ReadCloser) (*Tree, error) {
-	decoder := gob.NewDecoder(stream)
-	var n Node
+	decoder := json.NewDecoder(stream)
+	var n node
 	var t *Tree = Empty()
 	for {
 
-		err := decoder.Decode(n)
+		err := decoder.Decode(&n)
 		if err == io.EOF {
+			//log.Printf("deserialize - end of file")
 			return t, nil
 		}
 
 		if err != nil {
+			//log.Printf("deserialize - error: %s", err)
 			return nil, fmt.Errorf("error deserializing: %w", err)
 		}
 
+		//log.Printf("deserialize - adding %d %d %+v", n.GetID(), n.GetParentID(), n.GetData())
 		t.Add(n.GetID(), n.GetParentID(), n.GetData())
 
 	}
