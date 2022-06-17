@@ -8,29 +8,47 @@ import (
 type TraversalType int
 
 const (
-	// TraverseBreadthFirst
+	// TraverseBreadthFirst traverses the tree breadth first. For any node
+	// currently being traversed, all children of this node are traversed
+	// before any of the children's children are visited.
 	TraverseBreadthFirst TraversalType = iota
+	// TraverseDepthFrist traverses the tree depth first. For any node
+	// currently being traversed, all descendents of any child will be
+	// traversed before any subsequent children of the current node are
+	// visited.
 	TraverseDepthFirst
 )
 
-// Traverse implements a breadth first search through a tree. For each node reached
-// in the traversal, all child nodes are added to a queue of future nodes to search.
-// Thus all children of the current node will be serch before any children of
-// those children are searched.
+// Traverse visits each node of a tree in a specified order, returning
+// those nodes to an iterator-like chennel.
+//
+// This function takes as an argumentt a TraversalType which defines the
+// order of traversal. All node in the tree are traversed in this order.
+// The Nodes traversed are pushed to an unbuffered channel and must be
+// consumed by caller.
+//
+// If a tree is modified after the traversal has begun, any node that is
+// added after its correct place in traversal order will not be visited, nor
+// will any of its children.
 func (t *Tree) Traverse(trvsl TraversalType) <-chan Node {
 	search := make(chan Node)
-	q := queue.New()
-	q.PushBack(t.root)
-	go func() {
-		for {
-			if bfs(q, search) {
-				close(search)
-				break
+
+	switch trvsl {
+	case TraverseBreadthFirst:
+		q := queue.New()
+		q.PushBack(t.root)
+		go func() {
+			for {
+				if bfs(q, search) {
+					close(search)
+					break
+				}
 			}
-		}
-	}()
+		}()
+	}
 
 	return search
+
 }
 
 func bfs(q *queue.Queue, search chan<- Node) bool {
