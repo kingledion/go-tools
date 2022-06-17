@@ -96,7 +96,7 @@ func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, ex
 				return
 			}
 			// parent exists, add
-			child.SetParent(parent)
+			child.setParent(parent)
 			parent.AddChildren(child)
 		}
 	}
@@ -109,7 +109,7 @@ func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, ex
 }
 
 func (t *Tree) reroot(newHead Node) {
-	t.root.SetParent(newHead)
+	t.root.setParent(newHead)
 	newHead.AddChildren(t.root)
 	t.root = newHead
 }
@@ -143,7 +143,7 @@ func (t *Tree) Merge(other *Tree) bool {
 		}
 
 		f.AddChildren(other.root)
-		other.root.SetParent(f)
+		other.root.setParent(f)
 
 		// copy other index to new tree
 		for k, n := range *other.primary {

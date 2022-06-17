@@ -4,8 +4,11 @@ import (
 	"fmt"
 )
 
-// Node is the interface for a node within a tree. This package has an
-// internal node representation.
+// Node is the interface for a node within a tree.
+//
+// This package implementes this interface with an internal struct
+// representation. This interface cannot be implemented by other packages
+// due to unexported fields.
 //
 // The properties of a Node are that it has a uint primary key, a parent
 // Node and an array of child Nodes. Instantiating a Node through the
@@ -44,8 +47,8 @@ type Node interface {
 	// ReplaceChildren replaces the current list of children with a new list of
 	// Nodes.
 	ReplaceChildren(...Node)
-	// SetParent sets this node's parent to be the argument Node.
-	SetParent(n Node)
+
+	setParent(n Node)
 
 	// GetData retruns this node's internal data.
 	GetData() interface{}
@@ -94,7 +97,7 @@ func (n *node) ReplaceChildren(children ...Node) {
 	n.AddChildren(children...)
 }
 
-func (n *node) SetParent(parent Node) {
+func (n *node) setParent(parent Node) {
 	n.parent = parent
 	n.ParentID = parent.GetID()
 }
