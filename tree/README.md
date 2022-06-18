@@ -16,4 +16,4 @@ The goal fo this tree is to implement a generic tree with minimal memory usage a
 
 ## Development
 
-Documentation can be greated with `godoc`
+Documentation can be greated with `godoc`.

@@ -8,8 +8,8 @@ import (
 
 func TestIndexFind(t *testing.T) {
 
-	node1 := &node{primary: 1}
-	node2 := &node{primary: 2}
+	node1 := &node{Primary: 1}
+	node2 := &node{Primary: 2}
 
 	tests := map[string]struct {
 		index   index

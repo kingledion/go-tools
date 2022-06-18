@@ -1,6 +1,6 @@
 /*
-Package tree implements a simple tree that can be built from and stored to a
-row based data format, such as a relational database or csv file.
+Package tree implements a simple tree that can be serialized and deserialized
+from a byte-based storage, such as a file or cloud storage.
 
 A tree is here defined as a graph having three properties:
   - a single root node with no inbound edges
@@ -11,32 +11,40 @@ which parent and child relationships can be defined.
 
 The implemented tree data structure consists of a pointer to the root node
 and an index allowing fast lookup of nodes by their primary key. Each node
-holds the primary key of itself and its parent, as well as an array of
-pointers to its children. Children of a node are not ordered, and therefore
-are traversed in an order determined by the order in which they are added
-to the tree.
+holds the primary key of itself and its parent, as well as a pointer to its
+parent and an array of pointers to its children. All nodes also store an
+arbitrary set of node data, which can be any structure. Children of a node are
+not ordered, and therefore are traversed in an order determined by the order
+in which they are added to the tree.
 
-This package includes a breadth first search algorithm.
+This package includes tree traversal algorithms for breadth-first and depth-
+first search.
 */
 package tree
 
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+)
+
 // Tree is a data structure representing a tree. It contains a pointer to
-// a root node and an index of primary keys.
+// a root node and an index of primary keys implemented as a hash map.
 type Tree struct {
 	root    Node
 	primary *index
 }
 
 // Empty creates and returns an empty tree. The empty tree has a nil pointer
-// to its root node.
+// to its root node and an empty node index.
 func Empty() *Tree {
 	return &Tree{
 		primary: &index{},
 	}
 }
 
-// Root returns the root node of a tree. If the tree is empty, it returns
-// nil.
+// Root returns the root node of a tree. If the tree has no nodes, this
+// function returns nil.
 func (t *Tree) Root() Node {
 	return t.root
 }
@@ -64,7 +72,7 @@ func (t *Tree) Root() Node {
 // Do not set a primaryID to zero, as this value should be reserved for the
 // case where a node has no parent.
 func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, exists bool) {
-	child := &node{primary: nodeID, parentID: parentID, data: data}
+	child := &node{Primary: nodeID, ParentID: parentID, Data: data}
 
 	// Return false if this element has already been added
 	if t.primary.find(nodeID) != nil {
@@ -88,7 +96,7 @@ func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, ex
 				return
 			}
 			// parent exists, add
-			child.SetParent(parent)
+			child.setParent(parent)
 			parent.AddChildren(child)
 		}
 	}
@@ -101,13 +109,21 @@ func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, ex
 }
 
 func (t *Tree) reroot(newHead Node) {
-	t.root.SetParent(newHead)
+	t.root.setParent(newHead)
 	newHead.AddChildren(t.root)
 	t.root = newHead
 }
 
-// Merge another tree into this tree. If the merge is successful, returns
-// true, otherwise return false.
+// Merge another tree (passed in the argument) into the target tree (passed as the
+// subject of this method call). All data from the other tree is added to the target
+// tree, if a relationship can be found between the two trees. A relationship is
+// established if and only if the parent of the head of the other tree is found
+// in the target tree.
+//
+// If the merge is successful, returns true, otherwise return false. The merge can
+// fail if there are duplicate primary keys between the two trees. The merge
+// can also fail if the parent of the head of the other tree is not found in the
+// target tree.
 func (t *Tree) Merge(other *Tree) bool {
 
 	if other == nil {
@@ -127,7 +143,7 @@ func (t *Tree) Merge(other *Tree) bool {
 		}
 
 		f.AddChildren(other.root)
-		other.root.SetParent(f)
+		other.root.setParent(f)
 
 		// copy other index to new tree
 		for k, n := range *other.primary {
@@ -172,4 +188,77 @@ func (t *Tree) FindParents(id uint) (parents []Node, ok bool) {
 	}
 
 	return parents, true
+}
+
+// Serialize encodes the tree as a byte stream.
+//
+// The argument TraversalType will determine the traversal order in which
+// the tree is serialized. TraversalType does not matter for deserialization;
+// the internal metadata of the nodes will create the shape of the tree when
+// it is deserialized, not the order in which the nodes are serialized
+// to storage.
+//
+// The associated data of each node is serialized with it. This data may be
+// set the the caller and may not be serializable. If the associated data
+// cannot be serialzied using the json package, then this function will
+// throw an error. Once any error is thrown, serialization stops.
+//
+// The serialization is implemented into a goroutine which will populate the
+// ReadCloser return value as elements are consumed from it by the caller.
+// the <-chan error exists to pass any serialization error back from the
+// encoding goroutine.
+func (t *Tree) Serialize(trvsl TraversalType) (io.ReadCloser, <-chan error) {
+	reader, writer := io.Pipe()
+	errchan := make(chan error)
+
+	go func() {
+		encoder := json.NewEncoder(writer)
+		for n := range t.Traverse(trvsl) {
+			err := encoder.Encode(n)
+			if err != nil {
+				errchan <- err
+				writer.Close()
+				return
+			}
+
+		}
+
+		close(errchan)
+		writer.Close()
+	}()
+
+	return reader, errchan
+}
+
+// Deserialize decodes a data stream into a tree.
+//
+// Decode is validated for data streams encoded via the [`Serialize`]
+// method on [`Tree`]. While encoding is implemented with the json packagae,
+// There is no guarantee that it will deserialize data encoded in any other way.
+//
+// The argument ReadCloser is a stream with data from a serialized tree. If any
+// node of the tree fails to deserialize, this function will abord and return an
+// error.
+func Deserialize(stream io.ReadCloser) (*Tree, error) {
+	decoder := json.NewDecoder(stream)
+	var n node
+	var t *Tree = Empty()
+	for {
+
+		err := decoder.Decode(&n)
+		if err == io.EOF {
+			//log.Printf("deserialize - end of file")
+			return t, nil
+		}
+
+		if err != nil {
+			//log.Printf("deserialize - error: %s", err)
+			return nil, fmt.Errorf("error deserializing: %w", err)
+		}
+
+		//log.Printf("deserialize - adding %d %d %+v", n.GetID(), n.GetParentID(), n.GetData())
+		t.Add(n.GetID(), n.GetParentID(), n.GetData())
+
+	}
+
 }
