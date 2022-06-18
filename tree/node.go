@@ -98,8 +98,12 @@ func (n *node) ReplaceChildren(children ...Node) {
 }
 
 func (n *node) setParent(parent Node) {
+	if parent == nil || parent.GetID() == n.GetID() {
+		return
+	}
 	n.parent = parent
 	n.ParentID = parent.GetID()
+
 }
 
 func (n *node) GetData() interface{} {

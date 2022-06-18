@@ -201,3 +201,46 @@ func TestReplaceChildren(t *testing.T) {
 	}
 
 }
+
+func TestSetParent(t *testing.T) {
+
+	node1 := &node{Primary: 1}
+	node2 := &node{Primary: 2}
+
+	tests := map[string]struct {
+		n           Node
+		argParent   Node
+		expParent   Node
+		expParentID uint
+	}{
+		"set nil parent": {
+			n:           &node{Primary: 1},
+			argParent:   nil,
+			expParent:   nil,
+			expParentID: 0,
+		},
+		"set circular ref parent": {
+			n:           node1,
+			argParent:   node1,
+			expParent:   nil,
+			expParentID: 0,
+		},
+		"success": {
+			n:           &node{Primary: 1},
+			argParent:   node2,
+			expParent:   node2,
+			expParentID: 2,
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			n := tt.n
+			n.setParent(tt.argParent)
+
+			assert.Equal(t, tt.expParent, n.GetParent())
+			assert.Equal(t, tt.expParentID, n.GetParentID())
+		})
+	}
+
+}
