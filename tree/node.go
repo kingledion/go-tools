@@ -51,21 +51,21 @@ type Node interface {
 	setParent(n Node)
 
 	// GetData retruns this node's internal data.
-	GetData() interface{}
+	GetData() any
 	// SetData replaces this nodes data with the argument. The argument may be any
 	// type, but must be serializable via json.
 	//
 	// This function does not attempt to test json encoding when the data is set;
 	// any error with encoding will only occur when the data is serialized
 	// to a repository.
-	SetData(interface{})
+	SetData(any)
 }
 
 type node struct {
 	Primary  uint
 	ParentID uint
 	parent   Node
-	Data     interface{}
+	Data     any
 	children []Node
 }
 
@@ -106,11 +106,11 @@ func (n *node) setParent(parent Node) {
 
 }
 
-func (n *node) GetData() interface{} {
+func (n *node) GetData() any {
 	return n.Data
 }
 
-func (n *node) SetData(newdata interface{}) {
+func (n *node) SetData(newdata any) {
 	n.Data = newdata
 }
 

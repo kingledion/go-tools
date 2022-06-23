@@ -71,7 +71,7 @@ func (t *Tree) Root() Node {
 //
 // Do not set a primaryID to zero, as this value should be reserved for the
 // case where a node has no parent.
-func (t *Tree) Add(nodeID uint, parentID uint, data interface{}) (added bool, exists bool) {
+func (t *Tree) Add(nodeID uint, parentID uint, data any) (added bool, exists bool) {
 	child := &node{Primary: nodeID, ParentID: parentID, Data: data}
 
 	// Return false if this element has already been added
