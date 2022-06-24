@@ -5,7 +5,7 @@ package tree
 // in a tree in order of selected traversal.
 
 // returns the primary keys of a tree in order of a breadth first search
-func bfc(q []Node, iter []uint) []uint {
+func bfc[T any](q []Node[T], iter []uint) []uint {
 	if q == nil || len(q) == 0 || q[0] == nil {
 		return []uint{}
 	}
@@ -18,7 +18,7 @@ func bfc(q []Node, iter []uint) []uint {
 }
 
 // returns the primary keys of a tree in order of a breadth first search
-func dfc(n Node, iter []uint) []uint {
+func dfc[T any](n Node[T], iter []uint) []uint {
 	if n == nil {
 		return []uint{}
 	}

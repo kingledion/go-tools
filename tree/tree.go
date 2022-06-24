@@ -30,22 +30,22 @@ import (
 
 // Tree is a data structure representing a tree. It contains a pointer to
 // a root node and an index of primary keys implemented as a hash map.
-type Tree struct {
-	root    Node
-	primary *index
+type Tree[T any] struct {
+	root    Node[T]
+	primary *index[T]
 }
 
 // Empty creates and returns an empty tree. The empty tree has a nil pointer
 // to its root node and an empty node index.
-func Empty() *Tree {
-	return &Tree{
-		primary: &index{},
+func Empty[T any]() *Tree[T] {
+	return &Tree[T]{
+		primary: &index[T]{},
 	}
 }
 
 // Root returns the root node of a tree. If the tree has no nodes, this
 // function returns nil.
-func (t *Tree) Root() Node {
+func (t *Tree[T]) Root() Node[T] {
 	return t.root
 }
 
@@ -71,8 +71,8 @@ func (t *Tree) Root() Node {
 //
 // Do not set a primaryID to zero, as this value should be reserved for the
 // case where a node has no parent.
-func (t *Tree) Add(nodeID uint, parentID uint, data any) (added bool, exists bool) {
-	child := &node{Primary: nodeID, ParentID: parentID, Data: data}
+func (t *Tree[T]) Add(nodeID uint, parentID uint, data T) (added bool, exists bool) {
+	child := &node[T]{primary: nodeID, parentID: parentID, data: data}
 
 	// Return false if this element has already been added
 	if t.primary.find(nodeID) != nil {
@@ -108,7 +108,7 @@ func (t *Tree) Add(nodeID uint, parentID uint, data any) (added bool, exists boo
 	return
 }
 
-func (t *Tree) reroot(newHead Node) {
+func (t *Tree[T]) reroot(newHead Node[T]) {
 	t.root.setParent(newHead)
 	newHead.AddChildren(t.root)
 	t.root = newHead
@@ -124,7 +124,7 @@ func (t *Tree) reroot(newHead Node) {
 // fail if there are duplicate primary keys between the two trees. The merge
 // can also fail if the parent of the head of the other tree is not found in the
 // target tree.
-func (t *Tree) Merge(other *Tree) bool {
+func (t *Tree[T]) Merge(other *Tree[T]) bool {
 
 	if other == nil {
 		return false
@@ -159,7 +159,7 @@ func (t *Tree) Merge(other *Tree) bool {
 // Find looks up a node by its primary key. If the node is found, then
 // ok is true and a Node is returned. If the node is not found, then
 // ok is false an a nil pointer is returned.
-func (t *Tree) Find(id uint) (n Node, ok bool) {
+func (t *Tree[T]) Find(id uint) (n Node[T], ok bool) {
 	f := t.primary.find(id)
 	if f == nil {
 		return
@@ -176,7 +176,7 @@ func (t *Tree) Find(id uint) (n Node, ok bool) {
 //
 // The parent nodes array is ordered from immediate parent first to tree root
 // last.
-func (t *Tree) FindParents(id uint) (parents []Node, ok bool) {
+func (t *Tree[T]) FindParents(id uint) (parents []Node[T], ok bool) {
 
 	f := t.primary.find(id)
 	if f == nil {
@@ -207,7 +207,7 @@ func (t *Tree) FindParents(id uint) (parents []Node, ok bool) {
 // ReadCloser return value as elements are consumed from it by the caller.
 // the <-chan error exists to pass any serialization error back from the
 // encoding goroutine.
-func (t *Tree) Serialize(trvsl TraversalType) (io.ReadCloser, <-chan error) {
+func (t *Tree[T]) Serialize(trvsl TraversalType) (io.ReadCloser, <-chan error) {
 	reader, writer := io.Pipe()
 	errchan := make(chan error)
 
@@ -230,6 +230,12 @@ func (t *Tree) Serialize(trvsl TraversalType) (io.ReadCloser, <-chan error) {
 	return reader, errchan
 }
 
+type serialNode struct {
+	Primary  uint
+	ParentID uint
+	Data     json.RawMessage
+}
+
 // Deserialize decodes a data stream into a tree.
 //
 // Decode is validated for data streams encoded via the [`Serialize`]
@@ -239,10 +245,10 @@ func (t *Tree) Serialize(trvsl TraversalType) (io.ReadCloser, <-chan error) {
 // The argument ReadCloser is a stream with data from a serialized tree. If any
 // node of the tree fails to deserialize, this function will abord and return an
 // error.
-func Deserialize(stream io.ReadCloser) (*Tree, error) {
+func Deserialize[T any](stream io.ReadCloser) (*Tree[T], error) {
 	decoder := json.NewDecoder(stream)
-	var n node
-	var t *Tree = Empty()
+	var n node[T]
+	t := Empty[T]()
 	for {
 
 		err := decoder.Decode(&n)
