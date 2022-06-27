@@ -9,19 +9,19 @@ import (
 func TestBFS(t *testing.T) {
 
 	tests := map[string]struct {
-		tree      func() *Tree
+		tree      func() *Tree[int]
 		traversal TraversalType
 		expSearch []uint
 	}{
 		"success": {
-			tree: func() *Tree {
-				node6 := &node{Primary: 6}
-				node5 := &node{Primary: 5}
-				node4 := &node{Primary: 4}
-				node3 := &node{Primary: 3, children: []Node{node4, node5}}
-				node2 := &node{Primary: 2, children: []Node{node6}}
-				node1 := &node{Primary: 1, children: []Node{node2, node3}}
-				return &Tree{root: node1}
+			tree: func() *Tree[int] {
+				node6 := &node[int]{primary: 6}
+				node5 := &node[int]{primary: 5}
+				node4 := &node[int]{primary: 4}
+				node3 := &node[int]{primary: 3, children: []Node[int]{node4, node5}}
+				node2 := &node[int]{primary: 2, children: []Node[int]{node6}}
+				node1 := &node[int]{primary: 1, children: []Node[int]{node2, node3}}
+				return &Tree[int]{root: node1}
 			},
 			traversal: TraverseBreadthFirst,
 			expSearch: []uint{1, 2, 3, 6, 4, 5},

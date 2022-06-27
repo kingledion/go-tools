@@ -2,9 +2,9 @@ package tree
 
 import "log"
 
-type index map[uint]Node
+type index[T any] map[uint]Node[T]
 
-func (idx *index) find(id uint) Node {
+func (idx *index[T]) find(id uint) Node[T] {
 	if idx == nil { // do we need an error check here?
 		log.Println("Attempting to find in an undefined index")
 		return nil
@@ -17,7 +17,7 @@ func (idx *index) find(id uint) Node {
 	return val
 }
 
-func (idx *index) insert(id uint, node Node) bool {
+func (idx *index[T]) insert(id uint, node Node[T]) bool {
 	if idx == nil { // do we need an error check here?
 		log.Println("Attempting to insert in an undefined index")
 		return false
