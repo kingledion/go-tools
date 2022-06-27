@@ -72,6 +72,7 @@ func (t *Tree[T]) Root() Node[T] {
 // Do not set a primaryID to zero, as this value should be reserved for the
 // case where a node has no parent.
 func (t *Tree[T]) Add(nodeID uint, parentID uint, data T) (added bool, exists bool) {
+
 	child := &node[T]{primary: nodeID, parentID: parentID, data: data}
 
 	// Return false if this element has already been added
@@ -190,6 +191,13 @@ func (t *Tree[T]) FindParents(id uint) (parents []Node[T], ok bool) {
 	return parents, true
 }
 
+type serialNode[T any] struct {
+	// translates the important fields of a node for serialization
+	Primary  uint
+	ParentID uint
+	Data     T
+}
+
 // Serialize encodes the tree as a byte stream.
 //
 // The argument TraversalType will determine the traversal order in which
@@ -214,7 +222,11 @@ func (t *Tree[T]) Serialize(trvsl TraversalType) (io.ReadCloser, <-chan error) {
 	go func() {
 		encoder := json.NewEncoder(writer)
 		for n := range t.Traverse(trvsl) {
-			err := encoder.Encode(n)
+			err := encoder.Encode(serialNode[T]{
+				Primary:  n.GetID(),
+				ParentID: n.GetParentID(),
+				Data:     n.GetData(),
+			})
 			if err != nil {
 				errchan <- err
 				writer.Close()
@@ -230,12 +242,6 @@ func (t *Tree[T]) Serialize(trvsl TraversalType) (io.ReadCloser, <-chan error) {
 	return reader, errchan
 }
 
-type serialNode struct {
-	Primary  uint
-	ParentID uint
-	Data     json.RawMessage
-}
-
 // Deserialize decodes a data stream into a tree.
 //
 // Decode is validated for data streams encoded via the [`Serialize`]
@@ -247,23 +253,22 @@ type serialNode struct {
 // error.
 func Deserialize[T any](stream io.ReadCloser) (*Tree[T], error) {
 	decoder := json.NewDecoder(stream)
-	var n node[T]
 	t := Empty[T]()
+
 	for {
+
+		var n serialNode[T]
 
 		err := decoder.Decode(&n)
 		if err == io.EOF {
-			//log.Printf("deserialize - end of file")
 			return t, nil
 		}
 
 		if err != nil {
-			//log.Printf("deserialize - error: %s", err)
 			return nil, fmt.Errorf("error deserializing: %w", err)
 		}
 
-		//log.Printf("deserialize - adding %d %d %+v", n.GetID(), n.GetParentID(), n.GetData())
-		t.Add(n.GetID(), n.GetParentID(), n.GetData())
+		t.Add(n.Primary, n.ParentID, n.Data)
 
 	}
 

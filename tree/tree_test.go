@@ -571,6 +571,36 @@ func TestDeserializeMap(t *testing.T) {
 			expBFC:    []uint{},
 			expDFC:    []uint{},
 		},
+		"serialize breadth first": {
+			prep: func() *Tree[elem] {
+				t := Empty[elem]()
+				t.Add(1, 0, elem{"one": {1, 2}, "two": {2}})
+				t.Add(2, 1, elem{"two": {2}})
+				t.Add(3, 2, elem{"three": {3}})
+				t.Add(4, 1, elem{"four": {4}})
+				t.Add(5, 4, elem{"five": {5}})
+				return t
+			},
+			traversal: TraverseBreadthFirst,
+			expErr:    nil,
+			expBFC:    []uint{1, 2, 4, 3, 5},
+			expDFC:    []uint{1, 2, 3, 4, 5},
+			dataAssert: func(t *testing.T, gotTree *Tree[elem]) {
+				iter := gotTree.Traverse(TraverseBreadthFirst)
+				expData := []elem{
+					{"one": {1, 2}, "two": {2}},
+					{"two": {2}},
+					{"four": {4}},
+					{"three": {3}},
+					{"five": {5}},
+				}
+				gotData := []elem{}
+				for e := range iter {
+					gotData = append(gotData, e.GetData())
+				}
+				assert.Equal(t, expData, gotData)
+			},
+		},
 	}
 
 	for name, tt := range tests {
@@ -655,18 +685,14 @@ func TestDeserializeStruct(t *testing.T) {
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 
-			// this test assumes that Serialize will throw no errors
-			rdr, _ := tt.prep().Serialize(TraverseBreadthFirst)
+			prepTree := tt.prep()
 
-			//t.Logf("Started to serialize")
+			// this test assumes that Serialize will throw no errors
+			rdr, _ := prepTree.Serialize(TraverseBreadthFirst)
 
 			gotTree, gotErr := Deserialize[embeddedSerializable](rdr)
 
-			//t.Logf("Finished deserializing")
-
 			assert.Equal(t, tt.expErr, gotErr)
-			//t.Logf("Arguments: %+v\n", tt)
-			t.Logf("Results: {tree: %+v, error %+v}\n", gotTree, gotErr)
 
 			// only check the tree value if both expected and got errors are nil
 			if gotErr == nil && tt.expErr == nil {
