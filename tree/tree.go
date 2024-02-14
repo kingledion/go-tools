@@ -168,6 +168,35 @@ func (t *Tree[T]) Find(id uint) (n Node[T], ok bool) {
 	return f, true
 }
 
+// FindByValue looks up a node by its value. If there was only one Node found,
+// then ok is true and a Node is returned. If there were found more than one
+// nodes, the first that was found is returned, and ok is false. If the node is
+// not found, then ok is false an a nil pointer is returned.
+func (t *Tree[T]) FindByValue(val T) (n Node[T], ok bool) {
+	f := t.primary.findByVal(val)
+	if f == nil {
+		return
+	}
+	switch len(f){
+		case 1:
+		return f[0], true
+		default:
+		return f[0], false
+	}
+}
+
+// FinMultipledByValue looks up a list of nodes by their value.
+// If there were found a list is returned, and ok is true. If no nodes were
+// found, then ok is false an a nil pointer is returned.
+func (t *Tree[T]) FindMultipleByValue(val T) (nl []Node[T], ok bool){
+	f := t.primary.findByVal(val)
+	if f == nil {
+		return
+	}
+	return f, true
+}
+
+
 // FindParents finds the list of all parent nodes between a target node and the
 // root of a tree. The node is identified by its primary key. If the primary
 // key cannot be found in the tree, then ok is false and an empty array is returned.
@@ -273,3 +302,9 @@ func Deserialize[T any](stream io.ReadCloser) (*Tree[T], error) {
 	}
 
 }
+
+// Returns the ammout of nodes in the tree, not counting the root
+func (t Tree[T]) Size() uint{
+	return uint(len(*t.primary))
+}
+
