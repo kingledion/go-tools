@@ -30,7 +30,7 @@ func (idx *index[T]) insert(id uint, node Node[T]) bool {
 	return true
 }
 
-func (idx *index[T]) findByVal(val T) Node[T]{
+func (idx *index[T]) findByVal(val T) []Node[T]{
 	if idx == nil { // do we need an error check here?
 		log.Println("Attempting to insert in an undefined index")
 		return nil
@@ -45,12 +45,16 @@ func (idx *index[T]) findByVal(val T) Node[T]{
 
 	// Maybe there is a better way to search for an object in an unsorted list,
 	// but i have no idea how as of right now. Besides O(n) is not that bad.
+	var nl []Node[T]
 	for _, node := range *idx{
 		nodeData := reflect.ValueOf(node.GetData())
 		if valData.Equal(nodeData){
-			return node
+			nl = append(nl, node)
 		}
 	}	
-	log.Println("Not found a node with given value")
-	return nil
+	if len(nl) == 0{
+		log.Println("Not found a node with given value")
+		return nil
+	}
+	return nl
 }
