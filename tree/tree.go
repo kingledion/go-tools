@@ -168,6 +168,19 @@ func (t *Tree[T]) Find(id uint) (n Node[T], ok bool) {
 	return f, true
 }
 
+
+
+// FindByValue looks up a node by its value. If the node is found, then
+// ok is true and a Node is returned. If the node is not found, then
+// ok is false an a nil pointer is returned.
+func (t *Tree[T]) FindByValue(val T) (n Node[T], ok bool) {
+	f := t.primary.findByVal(val)
+	if f == nil {
+		return
+	}
+	return f, true
+}
+
 // FindParents finds the list of all parent nodes between a target node and the
 // root of a tree. The node is identified by its primary key. If the primary
 // key cannot be found in the tree, then ok is false and an empty array is returned.

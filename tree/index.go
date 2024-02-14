@@ -1,6 +1,9 @@
 package tree
 
-import "log"
+import (
+	"log"
+	"reflect"
+)
 
 type index[T any] map[uint]Node[T]
 
@@ -25,4 +28,29 @@ func (idx *index[T]) insert(id uint, node Node[T]) bool {
 	m := *idx
 	m[id] = node
 	return true
+}
+
+func (idx *index[T]) findByVal(val T) Node[T]{
+	if idx == nil { // do we need an error check here?
+		log.Println("Attempting to insert in an undefined index")
+		return nil
+	}
+
+	// The reflection could be removed, by adding a type constraint, but that
+	// would not be perfect for this labrary.
+	valData := reflect.ValueOf(val)
+	if !valData.Comparable(){
+		log.Println("The value type is incomparable")
+	}
+
+	// Maybe there is a better way to search for an object in an unsorted list,
+	// but i have no idea how as of right now. Besides O(n) is not that bad.
+	for _, node := range *idx{
+		nodeData := reflect.ValueOf(node.GetData())
+		if valData.Equal(nodeData){
+			return node
+		}
+	}	
+	log.Println("Not found a node with given value")
+	return nil
 }
