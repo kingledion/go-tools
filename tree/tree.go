@@ -273,3 +273,9 @@ func Deserialize[T any](stream io.ReadCloser) (*Tree[T], error) {
 	}
 
 }
+
+// Returns the ammout of nodes in the tree, not counting the root
+func (t Tree[T]) Size() uint{
+	return uint(len(*t.primary))
+}
+
